@@ -3,6 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
+//const cookieParser = require("cookie-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
 function generateRandomString() {
@@ -62,6 +63,12 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   //update the long URL
   urlDatabase[req.params.shortURL] = `http://${req.body.longURL}`;
+  // redirect  to /urls after updating the long URL
+  res.redirect(`/urls`);
+});
+app.post("/login", (req, res) => {
+  //set the cookie named username
+  res.cookie(req.body.username);
   // redirect  to /urls after updating the long URL
   res.redirect(`/urls`);
 });
