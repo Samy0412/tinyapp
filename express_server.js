@@ -68,7 +68,7 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 app.post("/login", (req, res) => {
   //set the cookie named username
-  res.cookie(req.body.username);
+  res.cookie("username", req.body.username);
   // redirect  to /urls after updating the long URL
   res.redirect(`/urls`);
 });
