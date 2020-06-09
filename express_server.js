@@ -40,13 +40,18 @@ app.get("/urls/:shortURL", (req, res) => {
   };
   res.render("urls_show", templateVars);
 });
+app.get("/u/:shortURL", (req, res) => {
+  //look for the corresponding longURL
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
+});
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
+  //console.log(req.body); // Log the POST request body to the console
   //save the shortURL-longURL key-value pair to the urlDatabase
   let newShortUrl = generateRandomString();
-  urlDatabase[newShortUrl] = req.body.longURL;
+  urlDatabase[newShortUrl] = `http://${req.body.longURL}`;
   // redirect  to /urls/:shortURL after generating the shortUrl
-  res.redirect(`/urls/${newShortUrl}`);
+  res.redirect(`/u/${newShortUrl}`);
 });
 
 app.listen(PORT, () => {
