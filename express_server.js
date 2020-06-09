@@ -44,7 +44,12 @@ app.post("/urls", (req, res) => {
   console.log(req.body); // Log the POST request body to the console
   let newShortUrl = generateRandomString();
   urlDatabase[newShortUrl] = req.body.longURL;
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  //res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  let templateVars = {
+    shortURL: newShortUrl,
+    longURL: urlDatabase[newShortUrl],
+  };
+  res.render("urls_show", templateVars);
 });
 
 app.listen(PORT, () => {
