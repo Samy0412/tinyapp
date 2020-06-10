@@ -30,6 +30,10 @@ app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_index", templateVars);
 });
+app.get("/register", (req, res) => {
+  let templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+  res.render("urls_register", templateVars);
+});
 //loads the html  content of the file urls_new (with the form) when a request is sent form "localhost:8080/urls/new"
 app.get("/urls/new", (req, res) => {
   let templateVars = { username: req.cookies["username"] };
