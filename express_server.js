@@ -102,7 +102,7 @@ app.post("/urls", (req, res) => {
 //SETS the cookie when a new user is logging in (when a POST request is sent to "/login")
 app.post("/login", (req, res) => {
   //sets a cookie containing the username
-  res.cookie("username", req.body.username);
+  res.cookie("user_id", id);
   res.redirect(`/urls`);
 });
 //CLEARS the cookie when a user is logging out (when a POST request is sent to "/logout")
