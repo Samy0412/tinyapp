@@ -21,10 +21,19 @@ const generateRandomString = function () {
 const checkExistingUserEmail = function (email) {
   for (let userId in users) {
     if (users[userId].email === email) {
-      return true;
+      return users[userId];
     }
   }
   return false;
+};
+
+const authenticateUser = function (email, password) {
+  const user = checkExistingUserEmail(email);
+  if (user && user.password === password) {
+    return user;
+  } else {
+    return false;
+  }
 };
 //USERS Global object database
 const users = {
@@ -101,8 +110,18 @@ app.post("/urls", (req, res) => {
 });
 //SETS the cookie when a new user is logging in (when a POST request is sent to "/login")
 app.post("/login", (req, res) => {
-  //sets a cookie containing the username
-  res.cookie("user_id", id);
+  //extract the infos from the form
+  const email = req.body.email;
+  const password = req.body.password;
+  const user = authenticateUser(email, password);
+  //checks if the email address exists in the database
+  !checkExistingUserEmail(email)
+    ? res.status(403).send("You don't have an account!")
+    : //checks if the password match the one in the database
+    !user
+    ? res.status(403).send("Wrong password!")
+    : //sets a cookie containing the username
+      res.cookie("user_id", user.id);
   res.redirect(`/urls`);
 });
 //CLEARS the cookie when a user is logging out (when a POST request is sent to "/logout")
