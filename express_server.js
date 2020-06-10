@@ -3,7 +3,8 @@ const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
-//const cookieParser = require("cookie-parser");
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 function generateRandomString() {
@@ -26,18 +27,20 @@ app.get("/", (req, res) => {
 });
 //loads the html content of the file urls_index (with a table of the short and long urls) when a request is sent from "localhost:8080/urls"
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
+  let templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_index", templateVars);
 });
 //loads the html  content of the file urls_new (with the form) when a request is sent form "localhost:8080/urls/new"
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let templateVars = { username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 });
 //loads the html content of the file urls_show and finds the corresponding longUrl to the shortUrl entered in the route (from the urlDatabase object)
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL],
+    username: req.cookies["username"],
   };
   res.render("urls_show", templateVars);
 });
@@ -69,6 +72,12 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post("/login", (req, res) => {
   //set the cookie named username
   res.cookie("username", req.body.username);
+  // redirect  to /urls after updating the long URL
+  res.redirect(`/urls`);
+});
+app.post("/logout", (req, res) => {
+  //set the cookie named username
+  res.cookie("username", "");
   // redirect  to /urls after updating the long URL
   res.redirect(`/urls`);
 });
