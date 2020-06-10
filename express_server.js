@@ -26,6 +26,7 @@ const checkExistingUserEmail = function (email) {
   }
   return false;
 };
+//USERS Global object database
 const users = {
   "9424e04d": {
     id: "9424e04d",
@@ -53,11 +54,17 @@ app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase, user: userObject };
   res.render("urls_index", templateVars);
 });
-//RENDERS "Create an account" when a GET request is sent to "localhost:8080/register"
+//RENDERS "Create an account" page when a GET request is sent to "localhost:8080/register"
 app.get("/register", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
   let templateVars = { urls: urlDatabase, user: userObject };
   res.render("urls_register", templateVars);
+});
+//RENDERS "Log In" page when a GET request is sent to "localhost:8080/register"
+app.get("/login", (req, res) => {
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = { urls: urlDatabase, user: userObject };
+  res.render("urls_login", templateVars);
 });
 //RENDERS the "Create new URL" page when a GET request is sent to "localhost:8080/urls/new"
 app.get("/urls/new", (req, res) => {
@@ -100,7 +107,7 @@ app.post("/login", (req, res) => {
 });
 //CLEARS the cookie when a user is logging out (when a POST request is sent to "/logout")
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect(`/urls`);
 });
 //EDITS the long URL corresponding to the :shortURL when a POST request is sent to "/urls/:shortURL"
