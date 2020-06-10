@@ -41,25 +41,30 @@ app.get("/", (req, res) => {
 });
 //RENDERS "My URLS" page and shows all the URLS from the Database when a GET request is sent to "localhost:8080/urls"
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+  console.log(users[req.cookies["user_id"]]);
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = { urls: urlDatabase, user: userObject };
   res.render("urls_index", templateVars);
 });
 //RENDERS "Create an account" when a GET request is sent to "localhost:8080/register"
 app.get("/register", (req, res) => {
-  let templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = { urls: urlDatabase, user: userObject };
   res.render("urls_register", templateVars);
 });
 //RENDERS the "Create new URL" page when a GET request is sent to "localhost:8080/urls/new"
 app.get("/urls/new", (req, res) => {
-  let templateVars = { username: req.cookies["username"] };
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = { user: userObject };
   res.render("urls_new", templateVars);
 });
 //FINDS the corresponding longUrl to the shortUrl from the route and renders the "Edit" page when a GET request is sent to "/urls/:shortURL"
 app.get("/urls/:shortURL", (req, res) => {
+  let userObject = users[req.cookies["user_id"]];
   let templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL],
-    username: req.cookies["username"],
+    user: userObject,
   };
   res.render("urls_show", templateVars);
 });
