@@ -18,6 +18,14 @@ const generateRandomString = function () {
   }
   return result;
 };
+const checkExistingUserEmail = function (email) {
+  for (let userId in users) {
+    if (users[userId].email === email) {
+      return true;
+    }
+  }
+  return false;
+};
 const users = {
   "9424e04d": {
     id: "9424e04d",
@@ -41,7 +49,6 @@ app.get("/", (req, res) => {
 });
 //RENDERS "My URLS" page and shows all the URLS from the Database when a GET request is sent to "localhost:8080/urls"
 app.get("/urls", (req, res) => {
-  console.log(users[req.cookies["user_id"]]);
   let userObject = users[req.cookies["user_id"]];
   let templateVars = { urls: urlDatabase, user: userObject };
   res.render("urls_index", templateVars);
@@ -113,14 +120,21 @@ app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const id = generateRandomString();
-  // adds a new object to the global users object
-  users[id] = {
-    id,
-    email,
-    password,
-  };
+  !email
+    ? res.status(400).send("Please enter an email address!")
+    : !password
+    ? res.status(400).send("Please enter a password!")
+    : checkExistingUserEmail(email)
+    ? res.status(400).send("You already have an account!")
+    : // adds a new object to the global users object
+      (users[id] = {
+        id,
+        email,
+        password,
+      });
   //sets a cookie containing the newly generated id
   res.cookie("user_id", id);
+
   res.redirect(`/urls`);
 });
 
