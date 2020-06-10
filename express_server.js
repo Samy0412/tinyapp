@@ -120,7 +120,7 @@ app.post("/login", (req, res) => {
     : //checks if the password match the one in the database
     !user
     ? res.status(403).send("Wrong password!")
-    : //sets a cookie containing the username
+    : //sets a cookie containing the user_id
       res.cookie("user_id", user.id);
   res.redirect(`/urls`);
 });
