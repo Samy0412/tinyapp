@@ -140,7 +140,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
   res.redirect(`/urls`);
 });
-//ADDS a new user to the global users database when a POST request is sent to "/register"
+//ADDS a new user to the global users database
 app.post("/register", (req, res) => {
   //extract the infos from the form
   const email = req.body.email;
