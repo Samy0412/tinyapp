@@ -1,13 +1,15 @@
 const express = require("express");
+const morgan = require("morgan");
 const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
+app.use(morgan("dev"));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-function generateRandomString() {
+const generateRandomString = function () {
   let rString =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let result = "";
@@ -15,12 +17,24 @@ function generateRandomString() {
     result += rString[Math.floor(Math.random() * rString.length)];
   }
   return result;
-}
-
+};
+const users = {
+  "9424e04d": {
+    id: "9424e04d",
+    email: "abra.cadabra@gmail.com",
+    password: "purple-monkey-dinosaur",
+  },
+  "5b2cdbcb": {
+    id: "5b2cdbcb",
+    email: "kent.wood@gmail.com",
+    password: "dishwasher-funk",
+  },
+};
 const urlDatabase = {
   b2xVn2: "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com",
 };
+
 //sends Hello when the browser send a request on the home page "localhost:8080/"
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -30,6 +44,7 @@ app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_index", templateVars);
 });
+
 app.get("/register", (req, res) => {
   let templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_register", templateVars);
@@ -81,6 +96,12 @@ app.post("/login", (req, res) => {
 });
 app.post("/logout", (req, res) => {
   //set the cookie named username
+  res.cookie("username", "");
+  // redirect  to /urls after updating the long URL
+  res.redirect(`/urls`);
+});
+app.post("/register", (req, res) => {
+  //extract the infos from the form
   res.cookie("username", "");
   // redirect  to /urls after updating the long URL
   res.redirect(`/urls`);
