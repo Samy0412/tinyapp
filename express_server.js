@@ -1,3 +1,4 @@
+//DEPENDENCIES
 const express = require("express");
 const morgan = require("morgan");
 const app = express();
@@ -9,6 +10,7 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+//FUNCTIONS
 const generateRandomString = function () {
   let rString =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -35,7 +37,8 @@ const authenticateUser = function (email, password) {
     return false;
   }
 };
-//USERS Global object database
+
+//USERS GLOBAL OBJECT DATABASE
 const users = {
   "9424e04d": {
     id: "9424e04d",
@@ -53,94 +56,24 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com",
 };
 
+//...HOME PAGE...
+
 //sends Hello when the browser send a request on the home page "localhost:8080/"
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
-//RENDERS "My URLS" page and shows all the URLS from the Database when a GET request is sent to "localhost:8080/urls"
-app.get("/urls", (req, res) => {
-  let userObject = users[req.cookies["user_id"]];
-  let templateVars = { urls: urlDatabase, user: userObject };
-  res.render("urls_index", templateVars);
-});
-//RENDERS "Create an account" page when a GET request is sent to "localhost:8080/register"
+//.....................................
+
+//...USER REGISTRATION...
+
+//DISPLAYS the register form
 app.get("/register", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
   let templateVars = { urls: urlDatabase, user: userObject };
   res.render("urls_register", templateVars);
 });
-//RENDERS "Log In" page when a GET request is sent to "localhost:8080/register"
-app.get("/login", (req, res) => {
-  let userObject = users[req.cookies["user_id"]];
-  let templateVars = { urls: urlDatabase, user: userObject };
-  res.render("urls_login", templateVars);
-});
-//RENDERS the "Create new URL" page when a GET request is sent to "localhost:8080/urls/new"
-app.get("/urls/new", (req, res) => {
-  let userObject = users[req.cookies["user_id"]];
-  let templateVars = { user: userObject };
-  res.render("urls_new", templateVars);
-});
-//FINDS the corresponding longUrl to the shortUrl from the route and renders the "Edit" page when a GET request is sent to "/urls/:shortURL"
-app.get("/urls/:shortURL", (req, res) => {
-  let userObject = users[req.cookies["user_id"]];
-  let templateVars = {
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL],
-    user: userObject,
-  };
-  res.render("urls_show", templateVars);
-});
 
-// REDIRECTS to the longURL corresponding to the shortURL when a GET request is sent to "/u/:shortURL"
-app.get("/u/:shortURL", (req, res) => {
-  //look for the corresponding longURL
-  const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
-});
-
-//CREATES a new shortURL-longURL key-value pair in the urlDatabase and redirects to "u/shortURL" when a POST request is sent to "/urls"
-app.post("/urls", (req, res) => {
-  //generate a random shortUrl
-  let newShortUrl = generateRandomString();
-  //save the shortURL-longURL key-value pair to the urlDatabase
-  urlDatabase[newShortUrl] = `http://${req.body.longURL}`;
-
-  res.redirect(`/u/${newShortUrl}`);
-});
-//SETS the cookie when a new user is logging in (when a POST request is sent to "/login")
-app.post("/login", (req, res) => {
-  //extract the infos from the form
-  const email = req.body.email;
-  const password = req.body.password;
-  const user = authenticateUser(email, password);
-  //checks if the email address exists in the database
-  !checkExistingUserEmail(email)
-    ? res.status(403).send("You don't have an account!")
-    : //checks if the password match the one in the database
-    !user
-    ? res.status(403).send("Wrong password!")
-    : //sets a cookie containing the user_id
-      res.cookie("user_id", user.id);
-  res.redirect(`/urls`);
-});
-//CLEARS the cookie when a user is logging out (when a POST request is sent to "/logout")
-app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  res.redirect(`/urls`);
-});
-//EDITS the long URL corresponding to the :shortURL when a POST request is sent to "/urls/:shortURL"
-app.post("/urls/:shortURL", (req, res) => {
-  //overwrite the longURL for the corresponding shortURL
-  urlDatabase[req.params.shortURL] = `http://${req.body.longURL}`;
-  res.redirect(`/urls`);
-});
-//DELETES the shortURL-longURL key-value pair from the urlDatabase and redirects to /urls when a POST request is sent to "/urls/:shortURL/delete"
-app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect(`/urls`);
-});
-//ADDS a new user to the global users database
+//GETS the INFO from the register form
 app.post("/register", (req, res) => {
   //extract the infos from the form
   const email = req.body.email;
@@ -163,6 +96,117 @@ app.post("/register", (req, res) => {
 
   res.redirect(`/urls`);
 });
+
+//.....................................
+
+//...USER AUTHENTIFICATION...
+
+//DISPLAYS the login form
+app.get("/login", (req, res) => {
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = { urls: urlDatabase, user: userObject };
+  res.render("urls_login", templateVars);
+});
+
+//AUTHENTIFICATE the user
+app.post("/login", (req, res) => {
+  //extract the infos from the form
+  const email = req.body.email;
+  const password = req.body.password;
+  const user = authenticateUser(email, password);
+  //checks if the email address exists in the database
+  !checkExistingUserEmail(email)
+    ? res.status(403).send("You don't have an account!")
+    : //checks if the password match the one in the database
+    !user
+    ? res.status(403).send("Wrong password!")
+    : //sets a cookie containing the user_id
+      res.cookie("user_id", user.id);
+  res.redirect(`/urls`);
+});
+
+//.....................................
+
+//...USER LOGGING OUT...
+
+//CLEARS the cookie when a user is logging out
+app.post("/logout", (req, res) => {
+  res.clearCookie("user_id");
+  res.redirect(`/urls`);
+});
+
+//.....................................
+
+//...URLS DATABASE DISPLAY...
+
+//DISPLAYS ALL URLS key-value pairs
+app.get("/urls", (req, res) => {
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = { urls: urlDatabase, user: userObject };
+  res.render("urls_index", templateVars);
+});
+
+//.....................................
+
+//...CREATING...
+
+//DISPLAYS the form to create a new URL
+app.get("/urls/new", (req, res) => {
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = { user: userObject };
+  res.render("urls_new", templateVars);
+});
+
+//CREATES a NEW shortURL-longURL key-value pair in the urlDatabase
+app.post("/urls", (req, res) => {
+  //generate a random shortUrl
+  let newShortUrl = generateRandomString();
+  //save the shortURL-longURL key-value pair to the urlDatabase
+  urlDatabase[newShortUrl] = `http://${req.body.longURL}`;
+
+  res.redirect(`/u/${newShortUrl}`);
+});
+// REDIRECTS to the website corresponding to the longURL
+app.get("/u/:shortURL", (req, res) => {
+  //look for the longURL corresponding to the :shortURL
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
+});
+
+//.....................................
+
+//...EDITING...
+
+//DISPLAYS the EDIT form
+app.get("/urls/:shortURL", (req, res) => {
+  let userObject = users[req.cookies["user_id"]];
+  let templateVars = {
+    shortURL: req.params.shortURL,
+    //finds the longURL corresponding to the :shortURL
+    longURL: urlDatabase[req.params.shortURL],
+    user: userObject,
+  };
+  res.render("urls_show", templateVars);
+});
+
+//EDITS the long URL corresponding to the :shortURL
+app.post("/urls/:shortURL", (req, res) => {
+  //overwrite the longURL for the corresponding shortURL
+  urlDatabase[req.params.shortURL] = `http://${req.body.longURL}`;
+  res.redirect(`/urls`);
+});
+
+//.....................................
+
+//...DELETING...
+
+//DELETES the shortURL-longURL key-value pair from the urlDatabase
+app.post("/urls/:shortURL/delete", (req, res) => {
+  delete urlDatabase[req.params.shortURL];
+  res.redirect(`/urls`);
+});
+
+//.....................................
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}!`);
