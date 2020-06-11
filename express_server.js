@@ -10,6 +10,11 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+//CHECKING SERVER STATUS
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}!`);
+});
+
 //FUNCTIONS
 const generateRandomString = function () {
   let rString =
@@ -153,8 +158,12 @@ app.get("/urls", (req, res) => {
 //DISPLAYS the form to create a new URL
 app.get("/urls/new", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
-  let templateVars = { user: userObject };
-  res.render("urls_new", templateVars);
+  if (!userObject) {
+    res.redirect("/login");
+  } else {
+    let templateVars = { user: userObject };
+    res.render("urls_new", templateVars);
+  }
 });
 
 //CREATES a NEW shortURL-longURL key-value pair in the urlDatabase
@@ -207,7 +216,3 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 //.....................................
-
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}!`);
-});
