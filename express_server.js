@@ -1,11 +1,12 @@
 //DEPENDENCIES
 const express = require("express");
 const morgan = require("morgan");
+const bcrypt = require("bcrypt");
+const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
-const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -36,7 +37,7 @@ const checkExistingUserEmail = function (email) {
 
 const authenticateUser = function (email, password) {
   const user = checkExistingUserEmail(email);
-  if (user && user.password === password) {
+  if (user && bcrypt.compareSync(password, user.password)) {
     return user;
   } else {
     return false;
@@ -66,7 +67,7 @@ const users = {
   },
 };
 
-//URLs DATABASE
+//URLS DATABASE
 const urlDatabase = {
   b2xVn2: { longURL: "http://www.lighthouselabs.ca", userId: "9424e04d" },
   "9sm5xK": { longURL: "http://www.google.com", userId: "9424e04d" },
@@ -106,11 +107,12 @@ app.post("/register", (req, res) => {
       (users[id] = {
         id,
         email,
-        password,
+        password: bcrypt.hashSync(password, 10),
       });
   //sets a cookie containing the newly generated id
   res.cookie("user_id", id);
-
+  console.log(users[id]);
+  console.log(users);
   res.redirect(`/urls`);
 });
 
