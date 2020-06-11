@@ -17,7 +17,7 @@ app.listen(PORT, () => {
 
 //FUNCTIONS
 const generateRandomString = function () {
-  let rString =
+  const rString =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let result = "";
   for (let i = 6; i > 0; --i) {
@@ -26,7 +26,7 @@ const generateRandomString = function () {
   return result;
 };
 const checkExistingUserEmail = function (email) {
-  for (let userId in users) {
+  for (const userId in users) {
     if (users[userId].email === email) {
       return users[userId];
     }
@@ -41,6 +41,15 @@ const authenticateUser = function (email, password) {
   } else {
     return false;
   }
+};
+const urlsForUser = function (id) {
+  const urls = {};
+  for (const shortUrl in urlDatabase) {
+    if (urlDatabase[shortUrl].userId === id) {
+      urls[shortUrl] = urlDatabase[shortUrl].longURL;
+    }
+  }
+  return urls;
 };
 
 //USERS GLOBAL OBJECT DATABASE
@@ -145,16 +154,17 @@ app.post("/logout", (req, res) => {
 
 //.....................................
 
-//...URLS DATABASE DISPLAY...
+//...DISPLAYING URLS DATABASE...
 
 //DISPLAYS ALL URLS key-value pairs
 app.get("/urls", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
   if (!userObject) {
-    res.redirect("/login");
+    res.send("Please register or login first!");
+    //res.redirect("/login");
   } else {
-    console.log(urlDatabase);
-    let templateVars = { urls: urlDatabase, user: userObject };
+    const urls = urlsForUser(userObject.id);
+    let templateVars = { urls, user: userObject };
     res.render("urls_index", templateVars);
   }
 });
@@ -167,7 +177,7 @@ app.get("/urls", (req, res) => {
 app.get("/urls/new", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
   if (!userObject) {
-    res.redirect("/login");
+    res.send("Please register or login first!");
   } else {
     let templateVars = { user: userObject };
     res.render("urls_new", templateVars);
@@ -201,19 +211,31 @@ app.get("/u/:shortURL", (req, res) => {
 //DISPLAYS the EDIT form
 app.get("/urls/:shortURL", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
-  let templateVars = {
-    shortURL: req.params.shortURL,
-    //finds the longURL corresponding to the :shortURL
-    longURL: urlDatabase[req.params.shortURL],
-    user: userObject,
-  };
-  res.render("urls_show", templateVars);
+  const urls = urlsForUser(userObject.id);
+  const userShortURLs = Object.keys(urls);
+  const shortURL = req.params.shortURL;
+  if (!userObject) {
+    res.send("Please register or login first!");
+  } else if (!userShortURLs.includes(shortURL)) {
+    res.status(403).send("Forbidden");
+  } else {
+    let templateVars = {
+      shortURL,
+      //finds the longURL corresponding to the :shortURL
+      longURL: urls[shortURL],
+      user: userObject,
+    };
+    res.render("urls_show", templateVars);
+  }
 });
 
 //EDITS the long URL corresponding to the :shortURL
 app.post("/urls/:shortURL", (req, res) => {
+  let userObject = users[req.cookies["user_id"]];
+  const urls = urlsForUser(userObject.id);
+  const shortURL = req.params.shortURL;
   //overwrite the longURL for the corresponding shortURL
-  urlDatabase[req.params.shortURL] = `http://${req.body.longURL}`;
+  urlDatabase[shortURL].longURL = `http://${req.body.longURL}`;
   res.redirect(`/urls`);
 });
 
