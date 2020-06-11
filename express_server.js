@@ -56,9 +56,12 @@ const users = {
     password: "dishwasher-funk",
   },
 };
+
+//URLs DATABASE
 const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b2xVn2: { longURL: "http://www.lighthouselabs.ca", userId: "9424e04d" },
+  "9sm5xK": { longURL: "http://www.google.com", userId: "9424e04d" },
+  b5hT38: { longURL: "http://www.lighthouselabs.ca", userId: "5b2cdbcb" },
 };
 
 //...HOME PAGE...
@@ -147,8 +150,13 @@ app.post("/logout", (req, res) => {
 //DISPLAYS ALL URLS key-value pairs
 app.get("/urls", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
-  let templateVars = { urls: urlDatabase, user: userObject };
-  res.render("urls_index", templateVars);
+  if (!userObject) {
+    res.redirect("/login");
+  } else {
+    console.log(urlDatabase);
+    let templateVars = { urls: urlDatabase, user: userObject };
+    res.render("urls_index", templateVars);
+  }
 });
 
 //.....................................
@@ -168,17 +176,21 @@ app.get("/urls/new", (req, res) => {
 
 //CREATES a NEW shortURL-longURL key-value pair in the urlDatabase
 app.post("/urls", (req, res) => {
+  let userId = req.cookies["user_id"];
   //generate a random shortUrl
   let newShortUrl = generateRandomString();
   //save the shortURL-longURL key-value pair to the urlDatabase
-  urlDatabase[newShortUrl] = `http://${req.body.longURL}`;
-
+  urlDatabase[newShortUrl] = {
+    longURL: `http://${req.body.longURL}`,
+    userId: userId,
+  };
+  console.log(urlDatabase);
   res.redirect(`/u/${newShortUrl}`);
 });
 // REDIRECTS to the website corresponding to the longURL
 app.get("/u/:shortURL", (req, res) => {
   //look for the longURL corresponding to the :shortURL
-  const longURL = urlDatabase[req.params.shortURL];
+  const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 

@@ -33,10 +33,10 @@
           </tr>
         </thead>
         <tbody>
-          <% for(let url in urls) { %>
+          <% for(let url in urls) { %> <% if(urls[url].userId === user.id) { %>
           <tr>
             <td><%= url %></td>
-            <td><%= urls[url] %></td>
+            <td><%= urls[url].longURL %></td>
             <td>
               <div class="form-group mb-2">
                 <a
@@ -62,7 +62,7 @@
               </form>
             </td>
           </tr>
-          <% } %>
+          <% } %> <% } %>
         </tbody>
       </table>
     </main>
