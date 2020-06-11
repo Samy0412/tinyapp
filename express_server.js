@@ -159,6 +159,7 @@ app.post("/logout", (req, res) => {
 //DISPLAYS ALL URLS key-value pairs
 app.get("/urls", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
+
   if (!userObject) {
     res.send("Please register or login first!");
     //res.redirect("/login");
@@ -233,10 +234,17 @@ app.get("/urls/:shortURL", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   let userObject = users[req.cookies["user_id"]];
   const urls = urlsForUser(userObject.id);
+  const userShortURLs = Object.keys(urls);
   const shortURL = req.params.shortURL;
-  //overwrite the longURL for the corresponding shortURL
-  urlDatabase[shortURL].longURL = `http://${req.body.longURL}`;
-  res.redirect(`/urls`);
+  if (!userObject) {
+    res.send("Please register or login first!");
+  } else if (!userShortURLs.includes(shortURL)) {
+    res.status(403).send("Forbidden");
+  } else {
+    //overwrite the longURL for the corresponding shortURL
+    urlDatabase[shortURL].longURL = `http://${req.body.longURL}`;
+    res.redirect(`/urls`);
+  }
 });
 
 //.....................................
@@ -245,8 +253,18 @@ app.post("/urls/:shortURL", (req, res) => {
 
 //DELETES the shortURL-longURL key-value pair from the urlDatabase
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect(`/urls`);
+  let userObject = users[req.cookies["user_id"]];
+  const urls = urlsForUser(userObject.id);
+  const userShortURLs = Object.keys(urls);
+  const shortURL = req.params.shortURL;
+  if (!userObject) {
+    res.send("Please register or login first!");
+  } else if (!userShortURLs.includes(shortURL)) {
+    res.status(403).send("Forbidden");
+  } else {
+    delete urlDatabase[shortURL];
+    res.redirect(`/urls`);
+  }
 });
 
 //.....................................
