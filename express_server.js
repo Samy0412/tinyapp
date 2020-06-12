@@ -48,11 +48,23 @@ const urlDatabase = {
   b5hT38: { longURL: "http://www.lighthouselabs.ca", userId: "5b2cdbcb" },
 };
 
+//Had to leave this helper function here as it wouldn't work once in the helper.js file...
+//CHECKS if the password is correct and returns the user object
+const authenticateUser = function (email, password, database) {
+  const userObject = _.getUserByEmail(email, database);
+  if (userObject && bcrypt.compareSync(password, userObject.password)) {
+    return userObject;
+  } else {
+    return false;
+  }
+};
+
 //...HOME PAGE...
 
-//sends Hello when the browser send a request on the home page "localhost:8080/"
+//
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  const userObject = users[req.session["user_id"]];
+  !userObject ? res.redirect("/login") : res.redirect("/urls");
 });
 //.....................................
 
@@ -61,8 +73,12 @@ app.get("/", (req, res) => {
 //DISPLAYS the register form
 app.get("/register", (req, res) => {
   const userObject = users[req.session["user_id"]];
-  let templateVars = { user: userObject };
-  res.render("urls_register", templateVars);
+  if (!userObject) {
+    let templateVars = { user: userObject };
+    res.render("urls_register", templateVars);
+  } else {
+    res.redirect("/urls");
+  }
 });
 
 //GETS the INFO from the register form
@@ -82,8 +98,6 @@ app.post("/register", (req, res) => {
 
   //sets a cookie containing the newly generated id
   req.session["user_id"] = userObject.id;
-
-  console.log(users);
   res.redirect(`/urls`);
 });
 
@@ -94,8 +108,12 @@ app.post("/register", (req, res) => {
 //DISPLAYS the login form
 app.get("/login", (req, res) => {
   const userObject = users[req.session["user_id"]];
-  let templateVars = { user: userObject };
-  res.render("urls_login", templateVars);
+  if (!userObject) {
+    let templateVars = { user: userObject };
+    res.render("urls_login", templateVars);
+  } else {
+    res.redirect("/urls");
+  }
 });
 
 //AUTHENTIFICATES the user
@@ -106,9 +124,9 @@ app.post("/login", (req, res) => {
   const userObject = _.getUserByEmail(email, users);
   //checks if the email address exists in the database
   !_.getUserByEmail(email, users)
-    ? res.status(403).send("You don't have an account!")
+    ? res.status(403).send("You don't have an account, please register first!")
     : //checks if the password match the one in the database
-    !!_.authenticateUser(email, password, users)
+    !authenticateUser(email, password, users)
     ? res.status(403).send("Wrong password!")
     : //sets a cookie containing the user_id
       (req.session["user_id"] = userObject.id);
@@ -155,7 +173,7 @@ app.get("/urls/new", (req, res) => {
   const userObject = users[req.session["user_id"]];
   //checks if the user is logged in
   if (!userObject) {
-    res.send("Please register or login first!");
+    res.redirect("/login");
   } else {
     let templateVars = { user: userObject };
     res.render("urls_new", templateVars);
@@ -165,21 +183,28 @@ app.get("/urls/new", (req, res) => {
 //CREATES a NEW shortURL-longURL key-value pair in the urlDatabase
 app.post("/urls", (req, res) => {
   let userId = req.session["user_id"];
-  //generate a random shortUrl
-  let newShortUrl = _.generateUniqueId(6);
-  //save the shortURL-longURL key-value pair to the urlDatabase
-  urlDatabase[newShortUrl] = {
-    longURL: `http://${req.body.longURL}`,
-    userId: userId,
-  };
-  console.log(urlDatabase);
-  res.redirect(`/u/${newShortUrl}`);
+
+  //checks if the user is logged in
+  if (!userId) {
+    res.send("Please register or login first!");
+  } else {
+    //generate a random shortUrl
+    let newShortUrl = _.generateUniqueId(6);
+    //save the shortURL-longURL key-value pair to the urlDatabase
+    urlDatabase[newShortUrl] = {
+      longURL: `http://${req.body.longURL}`,
+      userId: userId,
+    };
+    res.redirect(`/urls/${newShortUrl}`);
+  }
 });
 // REDIRECTS to the website corresponding to the longURL
 app.get("/u/:shortURL", (req, res) => {
   //looks for the longURL corresponding to the :shortURL
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longURL);
+  const shortUrlId = urlDatabase[req.params.shortURL];
+  urlDatabase[req.params.shortURL]
+    ? res.redirect(shortUrlId.longURL)
+    : res.send("This URL doesn't exist!");
 });
 
 //.....................................
