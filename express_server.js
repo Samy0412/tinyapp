@@ -3,6 +3,7 @@ const express = require("express");
 const morgan = require("morgan");
 const bcrypt = require("bcrypt");
 const bodyParser = require("body-parser");
+const _ = require("./helpers");
 var cookieSession = require("cookie-session");
 //creating a Express app
 const app = express();
@@ -26,54 +27,17 @@ app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}!`);
 });
 
-//HELPER FUNCTIONS
-const generateRandomString = function () {
-  const rString =
-    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let result = "";
-  for (let i = 6; i > 0; --i) {
-    result += rString[Math.floor(Math.random() * rString.length)];
-  }
-  return result;
-};
-const getUserByEmail = function (email) {
-  for (const userId in users) {
-    if (users[userId].email === email) {
-      return users[userId];
-    }
-  }
-  return false;
-};
-
-const authenticateUser = function (email, password) {
-  const user = checkExistingUserEmail(email);
-  if (user && bcrypt.compareSync(password, user.password)) {
-    return user;
-  } else {
-    return false;
-  }
-};
-const urlsForUser = function (id) {
-  const urls = {};
-  for (const shortUrl in urlDatabase) {
-    if (urlDatabase[shortUrl].userId === id) {
-      urls[shortUrl] = urlDatabase[shortUrl].longURL;
-    }
-  }
-  return urls;
-};
-
 //USERS GLOBAL OBJECT DATABASE
 const users = {
   "9424e04d": {
     id: "9424e04d",
     email: "abra.cadabra@gmail.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10),
   },
   "5b2cdbcb": {
     id: "5b2cdbcb",
     email: "kent.wood@gmail.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("dishwasher-funk", 10),
   },
 };
 
@@ -96,7 +60,7 @@ app.get("/", (req, res) => {
 
 //DISPLAYS the register form
 app.get("/register", (req, res) => {
-  let userObject = users[req.session["user_id"]];
+  const userObject = users[req.session["user_id"]];
   let templateVars = { user: userObject };
   res.render("urls_register", templateVars);
 });
@@ -106,21 +70,18 @@ app.post("/register", (req, res) => {
   //extract the infos from the form
   const email = req.body.email;
   const password = req.body.password;
-  const id = generateRandomString();
+  let userObject = null;
   !email
     ? res.status(400).send("Please enter an email address!")
     : !password
     ? res.status(400).send("Please enter a password!")
-    : checkExistingUserEmail(email)
+    : _.getUserByEmail(email, users)
     ? res.status(400).send("You already have an account!")
     : // adds a new object to the global users object
-      (users[id] = {
-        id,
-        email,
-        password: bcrypt.hashSync(password, 10),
-      });
+      (userObject = _.addNewUser(email, password, users));
+
   //sets a cookie containing the newly generated id
-  req.session["user_id"] = id;
+  req.session["user_id"] = userObject.id;
 
   console.log(users);
   res.redirect(`/urls`);
@@ -137,20 +98,20 @@ app.get("/login", (req, res) => {
   res.render("urls_login", templateVars);
 });
 
-//AUTHENTIFICATE the user
+//AUTHENTIFICATES the user
 app.post("/login", (req, res) => {
   //extract the infos from the form
   const email = req.body.email;
   const password = req.body.password;
-  const user = authenticateUser(email, password);
+  const userObject = _.getUserByEmail(email, users);
   //checks if the email address exists in the database
-  !getUserByEmail(email)
+  !_.getUserByEmail(email, users)
     ? res.status(403).send("You don't have an account!")
     : //checks if the password match the one in the database
-    !user
+    !!_.authenticateUser(email, password, users)
     ? res.status(403).send("Wrong password!")
     : //sets a cookie containing the user_id
-      (req.session["user_id"] = user.id);
+      (req.session["user_id"] = userObject.id);
 
   res.redirect(`/urls`);
 });
@@ -161,7 +122,6 @@ app.post("/login", (req, res) => {
 
 //CLEARS the cookie when a user is logging out
 app.post("/logout", (req, res) => {
-  //res.clearCookie("user_id");
   req.session = null;
   res.redirect(`/urls`);
 });
@@ -172,13 +132,15 @@ app.post("/logout", (req, res) => {
 
 //DISPLAYS ALL URLS key-value pairs
 app.get("/urls", (req, res) => {
-  let userObject = users[req.session["user_id"]];
-
+  //checks if the user is logged in
+  const userObject = users[req.session["user_id"]];
   if (!userObject) {
-    //res.send("Please register or login first!");
+    //redirects the user to the login page
     res.redirect("/login");
   } else {
-    const urls = urlsForUser(userObject.id);
+    //finds the url database of the user
+    const urls = _.urlsForUser(userObject.id, urlDatabase);
+
     let templateVars = { urls, user: userObject };
     res.render("urls_index", templateVars);
   }
@@ -186,11 +148,12 @@ app.get("/urls", (req, res) => {
 
 //.....................................
 
-//...CREATING...
+//...CREATING NEW URL...
 
 //DISPLAYS the form to create a new URL
 app.get("/urls/new", (req, res) => {
-  let userObject = users[req.session["user_id"]];
+  const userObject = users[req.session["user_id"]];
+  //checks if the user is logged in
   if (!userObject) {
     res.send("Please register or login first!");
   } else {
@@ -203,7 +166,7 @@ app.get("/urls/new", (req, res) => {
 app.post("/urls", (req, res) => {
   let userId = req.session["user_id"];
   //generate a random shortUrl
-  let newShortUrl = generateRandomString();
+  let newShortUrl = _.generateUniqueId(6);
   //save the shortURL-longURL key-value pair to the urlDatabase
   urlDatabase[newShortUrl] = {
     longURL: `http://${req.body.longURL}`,
@@ -214,22 +177,25 @@ app.post("/urls", (req, res) => {
 });
 // REDIRECTS to the website corresponding to the longURL
 app.get("/u/:shortURL", (req, res) => {
-  //look for the longURL corresponding to the :shortURL
+  //looks for the longURL corresponding to the :shortURL
   const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
 //.....................................
 
-//...EDITING...
+//...EDITING URL...
 
 //DISPLAYS the EDIT form
 app.get("/urls/:shortURL", (req, res) => {
   const userObject = users[req.session["user_id"]];
-  const urls = userObject && urlsForUser(userObject.id);
+  //finds the user's url database if the user exists
+  const urls = userObject && _.urlsForUser(userObject.id, urlDatabase);
   const shortURL = req.params.shortURL;
+  //checks if the user is logged in
   if (!userObject) {
     res.send("Please register or login first!");
+    //checks if the shortURL belongs to the user
   } else if (!urls[shortURL]) {
     res.status(403).send("Forbidden");
   } else {
@@ -246,10 +212,13 @@ app.get("/urls/:shortURL", (req, res) => {
 //EDITS the long URL corresponding to the :shortURL
 app.post("/urls/:shortURL", (req, res) => {
   const userObject = users[req.session["user_id"]];
-  const urls = userObject && urlsForUser(userObject.id);
+  //finds the user's url database if the user exists
+  const urls = userObject && _.urlsForUser(userObject.id, urlDatabase);
   const shortURL = req.params.shortURL;
+  //checks if the user is logged in
   if (!userObject) {
     res.send("Please register or login first!");
+    //checks if the shortURL belongs to the user
   } else if (!urls[shortURL]) {
     res.status(403).send("Forbidden");
   } else {
@@ -261,15 +230,18 @@ app.post("/urls/:shortURL", (req, res) => {
 
 //.....................................
 
-//...DELETING...
+//...DELETING URL...
 
 //DELETES the shortURL-longURL key-value pair from the urlDatabase
 app.post("/urls/:shortURL/delete", (req, res) => {
   const userObject = users[req.session["user_id"]];
-  const urls = userObject && urlsForUser(userObject.id);
+  //finds the user's url database if the user exists
+  const urls = userObject && _.urlsForUser(userObject.id, urlDatabase);
   const shortURL = req.params.shortURL;
+  //checks if the user is logged in
   if (!userObject) {
     res.send("Please register or login first!");
+    //checks if the shortURL belongs to the user
   } else if (!urls[shortURL]) {
     res.status(403).send("Forbidden");
   } else {
