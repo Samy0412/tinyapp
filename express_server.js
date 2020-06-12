@@ -4,7 +4,7 @@ const morgan = require("morgan");
 const bcrypt = require("bcrypt");
 const bodyParser = require("body-parser");
 const _ = require("./helpers");
-var cookieSession = require("cookie-session");
+let cookieSession = require("cookie-session");
 //creating a Express app
 const app = express();
 
@@ -50,7 +50,7 @@ const urlDatabase = {
 
 //Had to leave this helper function here as it wouldn't work once in the helper.js file...
 //CHECKS if the password is correct and returns the user object
-const authenticateUser = function (email, password, database) {
+const authenticateUser = function(email, password, database) {
   const userObject = _.getUserByEmail(email, database);
   if (userObject && bcrypt.compareSync(password, userObject.password)) {
     return userObject;
@@ -90,11 +90,11 @@ app.post("/register", (req, res) => {
   !email
     ? res.status(400).send("Please enter an email address!")
     : !password
-    ? res.status(400).send("Please enter a password!")
-    : _.getUserByEmail(email, users)
-    ? res.status(400).send("You already have an account!")
-    : // adds a new object to the global users object
-      (userObject = _.addNewUser(email, password, users));
+      ? res.status(400).send("Please enter a password!")
+      : _.getUserByEmail(email, users)
+        ? res.status(400).send("You already have an account!")
+        : // adds a new object to the global users object
+        (userObject = _.addNewUser(email, password, users));
 
   //sets a cookie containing the newly generated id
   req.session["user_id"] = userObject.id;
@@ -127,8 +127,8 @@ app.post("/login", (req, res) => {
     ? res.status(403).send("You don't have an account, please register first!")
     : //checks if the password match the one in the database
     !authenticateUser(email, password, users)
-    ? res.status(403).send("Wrong password!")
-    : //sets a cookie containing the user_id
+      ? res.status(403).send("Wrong password!")
+      : //sets a cookie containing the user_id
       (req.session["user_id"] = userObject.id);
 
   res.redirect(`/urls`);

@@ -18,43 +18,39 @@ const testUsers = {
     email: "user2@example.com",
     password: "dishwasher-funk",
   },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: bcrypt.hashSync("dishwasher-funk", 10),
+  user3RandomID: {
+    id: "user3RandomID",
+    email: "user3@example.com",
+    password: bcrypt.hashSync("blablabla", 10),
   },
 };
 
-describe("getUserByEmail", function () {
-  it("should return a user object with valid email", function () {
+describe("getUserByEmail", function() {
+  it("should return a user object with valid email", function() {
     const user = getUserByEmail("user@example.com", testUsers);
     const expectedOutput = testUsers["userRandomID"];
     assert.deepEqual(user, expectedOutput);
   });
 });
 
-describe("getUserByEmail", function () {
-  it("should return false if the email is not in the database", function () {
-    const user = getUserByEmail("user3@example.com", testUsers);
+describe("getUserByEmail", function() {
+  it("should return false if the email is not in the database", function() {
+    const user = getUserByEmail("user4@example.com", testUsers);
     const expectedOutput = false;
     assert.strictEqual(user, expectedOutput);
   });
 });
 
-describe("authenticateUser", function () {
-  it("should return the user object if the password is correct", function () {
-    const user = authenticateUser(
-      "user2@example.com",
-      "dishwasher-funk",
-      testUsers
-    );
-    const expectedOutput = testUsers["user2RandomID"];
+describe("authenticateUser", function() {
+  it("should return the user object if the password is correct", function() {
+    const user = authenticateUser("user3@example.com", "blablabla", testUsers);
+    const expectedOutput = testUsers["user3RandomID"];
     assert.deepEqual(user, expectedOutput);
   });
 });
 
-describe("authenticateUser", function () {
-  it("should return false if the password is incorrect", function () {
+describe("authenticateUser", function() {
+  it("should return false if the password is incorrect", function() {
     const user = authenticateUser(
       "user2@example.com",
       "dishwasher-funp",
@@ -73,8 +69,8 @@ const testDatabase = {
   B4l632: { longURL: "http://www.facebook.com", userId: "8gut8ew2" },
 };
 
-describe("urlsForUser", function () {
-  it("should return the correct list of urls belonging to a user", function () {
+describe("urlsForUser", function() {
+  it("should return the correct list of urls belonging to a user", function() {
     const urls = urlsForUser("5b2cdbcb", testDatabase);
     const expectedOutput = {
       b5hT38: "http://www.lighthouselabs.ca",
@@ -84,24 +80,24 @@ describe("urlsForUser", function () {
   });
 });
 
-describe("urlsForUser", function () {
-  it("should return an empty object if no urls belongs to the user", function () {
+describe("urlsForUser", function() {
+  it("should return an empty object if no urls belongs to the user", function() {
     const urls = urlsForUser("5b2tdbeb", testDatabase);
     const expectedOutput = {};
     assert.deepEqual(urls, expectedOutput);
   });
 });
 
-describe("addNewUser", function () {
-  it("should add the new user object to the database", function () {
+describe("addNewUser", function() {
+  it("should add the new user object to the database", function() {
     const expected = addNewUser("abra.cadabra@gmail.com", "hello", testUsers);
     const actual = getUserByEmail("abra.cadabra@gmail.com", testUsers);
     assert.deepEqual(actual, expected);
   });
 });
 
-describe("generateUniqueId", function () {
-  it("should return a string of 8 characters", function () {
+describe("generateUniqueId", function() {
+  it("should return a string of 8 characters", function() {
     const generatedString = generateUniqueId(8);
     assert.strictEqual(generatedString.length, 8);
   });
