@@ -50,7 +50,7 @@ const urlDatabase = {
 
 //Had to leave this helper function here as it wouldn't work once in the helper.js file...
 //CHECKS if the password is correct and returns the user object
-const authenticateUser = function (email, password, database) {
+const authenticateUser = function(email, password, database) {
   const userObject = _.getUserByEmail(email, database);
   if (userObject && bcrypt.compareSync(password, userObject.password)) {
     return userObject;
@@ -90,11 +90,11 @@ app.post("/register", (req, res) => {
   !email
     ? res.status(400).send("Please enter an email address!")
     : !password
-    ? res.status(400).send("Please enter a password!")
-    : _.getUserByEmail(email, users)
-    ? res.status(400).send("You already have an account!")
-    : // adds a new object to the global users object
-      (userObject = _.addNewUser(email, password, users));
+      ? res.status(400).send("Please enter a password!")
+      : _.getUserByEmail(email, users)
+        ? res.status(400).send("You already have an account!")
+        : // adds a new object to the global users object
+        (userObject = _.addNewUser(email, password, users));
 
   //sets a cookie containing the newly generated id
   req.session["user_id"] = userObject.id;
@@ -127,8 +127,8 @@ app.post("/login", (req, res) => {
     ? res.status(403).send("You don't have an account, please register first!")
     : //checks if the password match the one in the database
     !authenticateUser(email, password, users)
-    ? res.status(403).send("Wrong password!")
-    : //sets a cookie containing the user_id
+      ? res.status(403).send("Wrong password!")
+      : //sets a cookie containing the user_id
       (req.session["user_id"] = userObject.id);
 
   res.redirect(`/urls`);
@@ -183,16 +183,21 @@ app.get("/urls/new", (req, res) => {
 //CREATES a NEW shortURL-longURL key-value pair in the urlDatabase
 app.post("/urls", (req, res) => {
   let userId = req.session["user_id"];
-
   //checks if the user is logged in
   if (!userId) {
     res.send("Please register or login first!");
   } else {
     //generate a random shortUrl
     let newShortUrl = _.generateUniqueId(6);
+
+    //if the user doesn't type in the "http://", includes it in the database
+    let longURL = `${req.body.longURL}`;
+    if (!req.body.longURL.includes("http://")) {
+      longURL = `http://${req.body.longURL}`;
+    }
     //save the shortURL-longURL key-value pair to the urlDatabase
     urlDatabase[newShortUrl] = {
-      longURL: `${req.body.longURL}`,
+      longURL: longURL,
       userId: userId,
     };
     res.redirect(`/urls/${newShortUrl}`);
