@@ -9,6 +9,11 @@ let cookieSession = require("cookie-session");
 const app = express();
 
 const PORT = 8080; // default port 8080
+//CHECKING SERVER STATUS
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}!`);
+});
+
 app.set("view engine", "ejs");
 app.use(morgan("dev"));
 app.use(
@@ -21,11 +26,6 @@ app.use(
   })
 );
 app.use(bodyParser.urlencoded({ extended: true }));
-
-//CHECKING SERVER STATUS
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}!`);
-});
 
 //USERS GLOBAL OBJECT DATABASE
 const users = {
@@ -48,23 +48,16 @@ const urlDatabase = {
   b5hT38: { longURL: "http://www.lighthouselabs.ca", userId: "5b2cdbcb" },
 };
 
-//Had to leave this helper function here as it wouldn't work once in the helper.js file...
-//CHECKS if the password is correct and returns the user object
-const authenticateUser = function(email, password, database) {
-  const userObject = _.getUserByEmail(email, database);
-  if (userObject && bcrypt.compareSync(password, userObject.password)) {
-    return userObject;
-  } else {
-    return false;
-  }
-};
-
 //...HOME PAGE...
 
 //
 app.get("/", (req, res) => {
   const userObject = users[req.session["user_id"]];
-  !userObject ? res.redirect("/login") : res.redirect("/urls");
+  if (!userObject) {
+    res.redirect("/login");
+  } else {
+    res.redirect("/urls");
+  }
 });
 //.....................................
 
@@ -87,14 +80,16 @@ app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   let userObject = null;
-  !email
-    ? res.status(400).send("Please enter an email address!")
-    : !password
-      ? res.status(400).send("Please enter a password!")
-      : _.getUserByEmail(email, users)
-        ? res.status(400).send("You already have an account!")
-        : // adds a new object to the global users object
-        (userObject = _.addNewUser(email, password, users));
+  if (!email) {
+    res.status(400).send("Please enter an email address!");
+  } else if (!password) {
+    res.status(400).send("Please enter a password!");
+  } else if (_.getUserByEmail(email, users)) {
+    res.status(400).send("You already have an account!");
+  } else {
+    // adds a new object to the global users object
+    userObject = _.addNewUser(email, password, users);
+  }
 
   //sets a cookie containing the newly generated id
   req.session["user_id"] = userObject.id;
@@ -123,14 +118,16 @@ app.post("/login", (req, res) => {
   const password = req.body.password;
   const userObject = _.getUserByEmail(email, users);
   //checks if the email address exists in the database
-  !_.getUserByEmail(email, users)
-    ? res.status(403).send("You don't have an account, please register first!")
-    : //checks if the password match the one in the database
-    !authenticateUser(email, password, users)
-      ? res.status(403).send("Wrong password!")
-      : //sets a cookie containing the user_id
-      (req.session["user_id"] = userObject.id);
-
+  if (!_.getUserByEmail(email, users)) {
+    res.status(403).send("You don't have an account, please register first!");
+  }
+  //checks if the password match the one in the database
+  else if (!_.authenticateUser(email, password, users)) {
+    res.status(403).send("Wrong password!");
+  } else {
+    //sets a cookie containing the user_id
+    req.session["user_id"] = userObject.id;
+  }
   res.redirect(`/urls`);
 });
 
@@ -185,7 +182,7 @@ app.post("/urls", (req, res) => {
   let userId = req.session["user_id"];
   //checks if the user is logged in
   if (!userId) {
-    res.send("Please register or login first!");
+    res.status(400).send("Please register or login first!");
   } else {
     //generate a random shortUrl
     let newShortUrl = _.generateUniqueId(6);
@@ -207,9 +204,11 @@ app.post("/urls", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   //looks for the longURL corresponding to the :shortURL
   const shortUrlId = urlDatabase[req.params.shortURL];
-  urlDatabase[req.params.shortURL]
-    ? res.redirect(shortUrlId.longURL)
-    : res.send("This URL doesn't exist!");
+  if (urlDatabase[req.params.shortURL]) {
+    res.redirect(shortUrlId.longURL);
+  } else {
+    res.status(400).send("This URL doesn't exist!");
+  }
 });
 
 //.....................................
@@ -224,7 +223,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   //checks if the user is logged in
   if (!userObject) {
-    res.send("Please register or login first!");
+    res.status(400).send("Please register or login first!");
     //checks if the shortURL belongs to the user
   } else if (!urls[shortURL]) {
     res.status(403).send("Forbidden");
@@ -245,15 +244,20 @@ app.post("/urls/:shortURL", (req, res) => {
   //finds the user's url database if the user exists
   const urls = userObject && _.urlsForUser(userObject.id, urlDatabase);
   const shortURL = req.params.shortURL;
+  //if the user doesn't type in the "http://", includes it in the database
+  let longURL = `${req.body.longURL}`;
+  if (!req.body.longURL.includes("http://")) {
+    longURL = `http://${req.body.longURL}`;
+  }
   //checks if the user is logged in
   if (!userObject) {
-    res.send("Please register or login first!");
+    res.status(400).send("Please register or login first!");
     //checks if the shortURL belongs to the user
   } else if (!urls[shortURL]) {
     res.status(403).send("Forbidden");
   } else {
     //overwrite the longURL for the corresponding shortURL
-    urlDatabase[shortURL].longURL = `http://${req.body.longURL}`;
+    urlDatabase[shortURL].longURL = longURL;
     res.redirect(`/urls`);
   }
 });
@@ -270,7 +274,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
   //checks if the user is logged in
   if (!userObject) {
-    res.send("Please register or login first!");
+    res.status(400).send("Please register or login first!");
     //checks if the shortURL belongs to the user
   } else if (!urls[shortURL]) {
     res.status(403).send("Forbidden");
